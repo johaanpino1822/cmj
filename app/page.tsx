@@ -5,6 +5,7 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import {MapaMunicipios} from "@/components/municipios-map"
 import { municipios, noticiasRegionales, stats } from "@/lib/data"
+import ImageCarousel from "@/components/ImageCarousel"
 
 /* ─── Section heading: uppercase bold + green underline bar ─── */
 function SectionHeading({ title }: { title: string }) {
@@ -34,42 +35,35 @@ export default function HomePage() {
       <main>
 
         {/* ══════════════════════════════════════════════
-            HERO — full-bleed Andean photo, text bottom-left
+            CARRUSEL DE IMÁGENES — 4 imágenes juventud/CMJ
         ══════════════════════════════════════════════ */}
-        <section className="relative h-[520px] sm:h-[580px] lg:h-[640px] flex items-end overflow-hidden">
-          <Image
-            src="/images/hero-bg.jpg"
-            alt="Paisaje verde del Norte de Antioquia"
-            fill
-            className="object-cover object-center"
-            priority
-          />
-          {/* Light bottom vignette — lets landscape breathe like the reference */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
-
-          <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pb-14 sm:px-10 lg:px-14">
-            <h1 className="text-5xl font-black uppercase leading-[0.9] text-white drop-shadow-sm sm:text-6xl lg:text-7xl max-w-2xl text-balance">
-              Juventud en red,<br />
-              territorio en movimiento
-            </h1>
-            <p className="mt-4 text-base text-white/85 max-w-md leading-relaxed font-light">
-              Portal de los Consejos Municipales de Juventud de la Subregión Norte
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              {/* Solid green — matches reference "CONOCE TU CONSEJO" */}
-              <Link
-                href="/municipios"
-                className="inline-flex items-center rounded-md bg-primary px-6 py-3 text-sm font-bold uppercase tracking-widest text-white shadow hover:bg-primary-hover transition-colors"
-              >
-                Conoce tu consejo
-              </Link>
-              {/* Outlined white — secondary action */}
-              <Link
-                href="/pqr"
-                className="inline-flex items-center rounded-md border border-white/50 bg-white/10 px-6 py-3 text-sm font-semibold uppercase tracking-widest text-white hover:bg-white/20 transition-colors backdrop-blur-sm"
-              >
-                Radicar PQR
-              </Link>
+        <section className="relative h-[520px] sm:h-[580px] lg:h-[640px] overflow-hidden">
+          <ImageCarousel />
+          
+          {/* Texto superpuesto sobre el carrusel */}
+          <div className="absolute inset-0 z-20 flex items-end">
+            <div className="w-full max-w-7xl mx-auto px-6 pb-14 sm:px-10 lg:px-14">
+              <h1 className="text-5xl font-black uppercase leading-[0.9] text-white drop-shadow-sm sm:text-6xl lg:text-7xl max-w-2xl text-balance">
+                Juventud en red,<br />
+                territorio en movimiento
+              </h1>
+              <p className="mt-4 text-base text-white/85 max-w-md leading-relaxed font-light drop-shadow-md">
+                Portal de los Consejos Municipales de Juventud de la Subregión Norte
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="/municipios"
+                  className="inline-flex items-center rounded-md bg-primary px-6 py-3 text-sm font-bold uppercase tracking-widest text-white shadow hover:bg-primary-hover transition-colors"
+                >
+                  Conoce tu consejo
+                </Link>
+                <Link
+                  href="/pqr"
+                  className="inline-flex items-center rounded-md border border-white/50 bg-white/10 px-6 py-3 text-sm font-semibold uppercase tracking-widest text-white hover:bg-white/20 transition-colors backdrop-blur-sm"
+                >
+                  Radicar PQR
+                </Link>
+              </div>
             </div>
           </div>
         </section>

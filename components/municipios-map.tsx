@@ -1,8 +1,8 @@
-// components/MapaAntioquia.tsx
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Users, FolderOpen, MapPin, ExternalLink, X } from "lucide-react"
+import dynamic from "next/dynamic"
 
 // ============================================================
 // INTERFACES
@@ -251,51 +251,64 @@ const municipiosData: Municipio[] = [
 ]
 
 // ============================================================
-// COMPONENTE PRINCIPAL CON CARGA DINÁMICA
+// COMPONENTE PRINCIPAL
 // ============================================================
+
+// Cargar el mapa dinámicamente solo en el cliente
+const MapaLeaflet = dynamic(
+  () => import("@/components/MapaLeaflet"),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando mapa...</p>
+        </div>
+      </div>
+    )
+  }
+)
 
 export function MapaMunicipios() {
   const [selectedMunicipio, setSelectedMunicipio] = useState<Municipio | null>(null)
-  const [geoJSONData, setGeoJSONData] = useState<any>(null)
+  const [antioquiaData, setAntioquiaData] = useState<any>(null)
+  const [norteData, setNorteData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isClient, setIsClient] = useState(false)
-  const [MapComponent, setMapComponent] = useState<any>(null)
-  const mapRef = useRef<any>(null)
 
-  // Marcar que estamos en el cliente
+  // Cargar los GeoJSON
   useEffect(() => {
-    setIsClient(true)
-  }, [])
+    const loadGeoJSON = async () => {
+      try {
+        const [antioquiaRes, norteRes] = await Promise.all([
+          fetch("/data/antioquia.geojson"),
+          fetch("/data/norte_antioquia.geojson")
+        ])
 
-  // Cargar el mapa solo en el cliente
-  useEffect(() => {
-    if (isClient) {
-      import("./MapaLeaflet").then((mod) => {
-        setMapComponent(() => mod.default)
-      })
+        if (!antioquiaRes.ok) {
+          throw new Error("No se encontró antioquia.geojson")
+        }
+
+        if (!norteRes.ok) {
+          throw new Error("No se encontró norte-antioquia.geojson")
+        }
+
+        const antioquia = await antioquiaRes.json()
+        const norte = await norteRes.json()
+
+        setAntioquiaData(antioquia)
+        setNorteData(norte)
+        setLoading(false)
+      } catch (err) {
+        console.error("Error cargando GeoJSON:", err)
+        setError(err.message)
+        setLoading(false)
+      }
     }
-  }, [isClient])
 
-  // Cargar datos GeoJSON
-  useEffect(() => {
-    if (!isClient) return
-
-    fetch("/data/norte-antioquia.geojson")
-      .then((res) => {
-        if (!res.ok) throw new Error("Error al cargar los datos del mapa")
-        return res.json()
-      })
-      .then((data) => {
-        setGeoJSONData(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error("Error:", err)
-        setError("No se pudo cargar el mapa. Por favor, recarga la página.")
-        setLoading(false)
-      })
-  }, [isClient])
+    loadGeoJSON()
+  }, [])
 
   if (loading) {
     return (
@@ -319,17 +332,6 @@ export function MapaMunicipios() {
     )
   }
 
-  if (!isClient || !MapComponent) {
-    return (
-      <div className="w-full h-[600px] flex items-center justify-center bg-gray-50 rounded-2xl">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Preparando mapa...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="w-full rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-white">
       {/* Título */}
@@ -345,8 +347,9 @@ export function MapaMunicipios() {
 
       {/* Mapa */}
       <div className="relative w-full h-[600px] p-4">
-        <MapComponent
-          geoJSONData={geoJSONData}
+        <MapaLeaflet
+          antioquiaData={antioquiaData}
+          norteData={norteData}
           municipiosData={municipiosData}
           selectedMunicipio={selectedMunicipio}
           setSelectedMunicipio={setSelectedMunicipio}

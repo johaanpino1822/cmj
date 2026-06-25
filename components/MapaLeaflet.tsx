@@ -1,166 +1,152 @@
-// components/MapaLeaflet.tsx
 "use client"
 
-import { useEffect, useRef } from "react"
-import { MapContainer, TileLayer, GeoJSON, Marker, Popup, useMap } from "react-leaflet"
+import { useEffect } from "react"
+import {
+  MapContainer,
+  GeoJSON,
+  useMap
+} from "react-leaflet"
+
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 
-// Configurar íconos de Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-})
-
-// Componente para controlar el mapa
-function MapController({ center, zoom }: { center: [number, number], zoom: number }) {
-  const map = useMap()
-  useEffect(() => {
-    map.flyTo(center, zoom, { duration: 1.5 })
-  }, [center, zoom, map])
-  return null
-}
-
-interface MapaLeafletProps {
-  geoJSONData: any
+interface Props {
+  antioquiaData: any
+  norteData: any
   municipiosData: any[]
   selectedMunicipio: any
   setSelectedMunicipio: (municipio: any) => void
 }
 
+function FitBounds({ data }: { data: any }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!data) return
+
+    try {
+      const bounds = L.geoJSON(data).getBounds()
+      
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, {
+          padding: [20, 20]
+        })
+      }
+    } catch (error) {
+      console.error("Error ajustando límites:", error)
+    }
+  }, [data, map])
+
+  return null
+}
+
 export default function MapaLeaflet({
-  geoJSONData,
+  antioquiaData,
+  norteData,
   municipiosData,
   selectedMunicipio,
   setSelectedMunicipio
-}: MapaLeafletProps) {
-  const mapRef = useRef<L.Map | null>(null)
+}: Props) {
 
-  // Estilo para los municipios
-  const geoJSONStyle = (feature: any) => {
-    const isSelected = feature?.properties?.nombre === selectedMunicipio?.nombre
+  // Estilo para la silueta de Antioquia (fondo)
+  const antioquiaStyle = {
+    fillColor: "#e5e7eb",
+    fillOpacity: 0.25,
+    color: "#64748b",
+    weight: 1,
+    dashArray: "3, 3"
+  }
+
+  // Estilo para los municipios del Norte (interactivos)
+  const norteStyle = (feature: any) => {
+    const isSelected = selectedMunicipio?.nombre === feature?.properties?.nombre
+
     return {
-      fillColor: isSelected ? "#2E7D32" : "#66BB6A",
-      fillOpacity: isSelected ? 0.8 : 0.6,
-      color: isSelected ? "#1B5E20" : "#2E7D32",
-      weight: isSelected ? 3 : 2,
-      opacity: 1,
-      smoothFactor: 1
+      fillColor: isSelected ? "#14532d" : "#4CAF50",
+      fillOpacity: isSelected ? 0.9 : 0.75,
+      color: "#ffffff",
+      weight: isSelected ? 3 : 1.2
     }
   }
 
-  // Manejar clic en un municipio
-  const handleFeatureClick = (feature: any) => {
-    const nombre = feature.properties.nombre || feature.properties.dpto_cnmbr
-    const municipio = municipiosData.find(m => 
-      m.nombre === nombre || nombre?.includes(m.nombre)
+  const onEachFeature = (
+    feature: any,
+    layer: any
+  ) => {
+    const municipio = municipiosData.find(
+      (m) => m.nombre === feature?.properties?.nombre
     )
-    if (municipio) {
-      setSelectedMunicipio(selectedMunicipio?.id === municipio.id ? null : municipio)
-    }
-  }
 
-  // Eventos para cada feature
-  const onEachFeature = (feature: any, layer: L.Layer) => {
+    if (!municipio) return
+
+    // Tooltip con el nombre del municipio
+    layer.bindTooltip(municipio.nombre, {
+      sticky: true,
+      className: "custom-tooltip"
+    })
+
+    // Eventos de interacción
     layer.on({
-      click: () => handleFeatureClick(feature)
-    })
+      click: () => {
+        setSelectedMunicipio(municipio)
+      },
 
-    const nombre = feature.properties.nombre || feature.properties.dpto_cnmbr || "Municipio"
-    layer.bindTooltip(nombre, {
-      permanent: false,
-      direction: "center",
-      className: "custom-tooltip",
-      offset: [0, -10]
+      mouseover: (e: any) => {
+        e.target.setStyle({
+          fillOpacity: 1,
+          weight: 3,
+          color: "#ffffff"
+        })
+        
+        // Mostrar tooltip
+        layer.openTooltip()
+      },
+
+      mouseout: (e: any) => {
+        const isSelected = selectedMunicipio?.nombre === municipio.nombre
+        
+        e.target.setStyle({
+          fillOpacity: isSelected ? 0.9 : 0.75,
+          weight: isSelected ? 3 : 1.2,
+          color: "#ffffff"
+        })
+        
+        // Cerrar tooltip
+        layer.closeTooltip()
+      }
     })
   }
-
-  const mapCenter: [number, number] = selectedMunicipio
-    ? selectedMunicipio.centro
-    : [6.85, -75.48]
-
-  const mapZoom = selectedMunicipio ? 10 : 8.5
 
   return (
     <MapContainer
-      center={mapCenter}
-      zoom={mapZoom}
-      style={{ height: "100%", width: "100%", borderRadius: "12px" }}
-      zoomControl={false}
-      className="leaflet-container"
-      ref={mapRef}
+      zoom={9}
+      center={[6.9, -75.4]}
+      style={{
+        width: "100%",
+        height: "100%",
+        background: "#f8fafc"
+      }}
+      zoomControl={true}
     >
-      {/* Control de zoom personalizado */}
-      <div className="leaflet-top leaflet-right" style={{ marginTop: "10px", marginRight: "10px" }}>
-        <div className="leaflet-control-zoom leaflet-bar">
-          <a
-            className="leaflet-control-zoom-in"
-            href="#"
-            title="Zoom in"
-            role="button"
-            aria-label="Zoom in"
-            onClick={(e) => {
-              e.preventDefault()
-              if (mapRef.current) mapRef.current.zoomIn()
-            }}
-          >+</a>
-          <a
-            className="leaflet-control-zoom-out"
-            href="#"
-            title="Zoom out"
-            role="button"
-            aria-label="Zoom out"
-            onClick={(e) => {
-              e.preventDefault()
-              if (mapRef.current) mapRef.current.zoomOut()
-            }}
-          >-</a>
-        </div>
-      </div>
+      {/* Ajustar límites al área del Norte */}
+      <FitBounds data={norteData} />
 
-      <MapController center={mapCenter} zoom={mapZoom} />
-
-      {/* Capa de mapa base */}
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        className="map-tiles"
-      />
-
-      {/* GeoJSON de Antioquia */}
-      {geoJSONData && (
+      {/* Capa 1: Silueta completa de Antioquia (fondo) */}
+      {antioquiaData && (
         <GeoJSON
-          data={geoJSONData}
-          style={geoJSONStyle}
-          onEachFeature={onEachFeature}
+          data={antioquiaData}
+          style={antioquiaStyle}
         />
       )}
 
-      {/* Marcadores de municipios */}
-      {municipiosData.map((municipio) => {
-        const isSelected = selectedMunicipio?.id === municipio.id
-        return (
-          <Marker
-            key={municipio.id}
-            position={municipio.centro}
-            eventHandlers={{
-              click: () => {
-                setSelectedMunicipio(isSelected ? null : municipio)
-              },
-            }}
-          >
-            <Popup className="custom-popup">
-              <div className="text-center p-2">
-                <p className="font-bold text-green-800">{municipio.nombre}</p>
-                <p className="text-xs text-gray-600">{municipio.integrantes} miembros</p>
-                <p className="text-xs text-gray-500">CMJ {municipio.periodo}</p>
-              </div>
-            </Popup>
-          </Marker>
-        )
-      })}
+      {/* Capa 2: Municipios del Norte (interactivos) */}
+      {norteData && (
+        <GeoJSON
+          data={norteData}
+          style={norteStyle}
+          onEachFeature={onEachFeature}
+        />
+      )}
     </MapContainer>
   )
 }
